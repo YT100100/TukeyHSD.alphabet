@@ -73,7 +73,7 @@ reflect.significance <- function(alphabet_mat, level0, tukey_res, alpha) {
 #'
 #' @export
 #'
-TukeyHSD.alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
+TukeyHSD_alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
 
   # factor_name <- 'x1'
   # alpha <- 0.01
