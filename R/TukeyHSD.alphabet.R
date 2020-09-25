@@ -1,41 +1,4 @@
-# # create simulation data
-# create.simulation.data <- function() {
-#
-#   # factor name
-#   name_x1 <- paste0('P', LETTERS[1:5])
-#   name_x2 <- paste0('Q', LETTERS[1:3])
-#
-#   # create data
-#   dat <- expand.grid(
-#     x1 = name_x1,
-#     x2 = name_x2,
-#     rep = paste0('rep', 1:3)
-#   )
-#
-#   # set effects
-#   eff_x1 <- c(4, 5, 0, 9, 7)
-#   eff_x2 <- c(-2, 0, -5)
-#   names(eff_x1) <- name_x1
-#   names(eff_x2) <- name_x2
-#   sd_e <- 2
-#
-#   # calculate
-#   n <- nrow(dat)
-#   set.seed(1000)
-#   dat$y <- with(
-#     dat, eff_x1[x1] + eff_x2[x2] + rnorm(n, 0, sd_e)
-#   )
-#   dat
-#
-# }
-#
-# dat <- create.simulation.data()
-# plot(dat$x1, dat$y); points(dat$x1, dat$y)
-# plot(dat$x2, dat$y); points(dat$x2, dat$y)
-# aov_res <- aov(y ~ x1 + x2, dat)
-
-
-# function to sort level names in order of coefficients
+# sort level names in order of coefficients
 sort.levels.in.order.of.coef <- function(aov_res, factor_name) {
 
   # fetch level names
@@ -59,6 +22,7 @@ sort.levels.in.order.of.coef <- function(aov_res, factor_name) {
 
 }
 
+# create initial empty matrix for the algorithm
 create.empty.matrix <- function(level_name) {
 
   # create matrix with NA
@@ -75,6 +39,8 @@ create.empty.matrix <- function(level_name) {
 
 }
 
+# fill the cells of alphabet_mat
+# if the difference of the groups are significant
 reflect.significance <- function(alphabet_mat, level0, tukey_res, alpha) {
 
   # extract result matrix of the target level
@@ -97,6 +63,16 @@ reflect.significance <- function(alphabet_mat, level0, tukey_res, alpha) {
 
 }
 
+
+#' Make groups for the results of TukeyHSD() with alphabets
+#'
+#' @param aov_res An object created with aov().
+#' @param factor_name The name of explanatory variable you want to test.
+#' @param alpha The significance level in multi-comparison test.
+#' @param ... Other parameters for TukeyHSD().
+#'
+#' @export
+#'
 TukeyHSD.alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
 
   # factor_name <- 'x1'
@@ -181,6 +157,45 @@ TukeyHSD.alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
 
 }
 
+
+
+### test code from here:
+
+# # create simulation data
+# create.simulation.data <- function() {
+#
+#   # factor name
+#   name_x1 <- paste0('P', LETTERS[1:5])
+#   name_x2 <- paste0('Q', LETTERS[1:3])
+#
+#   # create data
+#   dat <- expand.grid(
+#     x1 = name_x1,
+#     x2 = name_x2,
+#     rep = paste0('rep', 1:3)
+#   )
+#
+#   # set effects
+#   eff_x1 <- c(4, 5, 0, 9, 7)
+#   eff_x2 <- c(-2, 0, -5)
+#   names(eff_x1) <- name_x1
+#   names(eff_x2) <- name_x2
+#   sd_e <- 2
+#
+#   # calculate
+#   n <- nrow(dat)
+#   set.seed(1000)
+#   dat$y <- with(
+#     dat, eff_x1[x1] + eff_x2[x2] + rnorm(n, 0, sd_e)
+#   )
+#   dat
+#
+# }
+#
+# dat <- create.simulation.data()
+# plot(dat$x1, dat$y); points(dat$x1, dat$y)
+# plot(dat$x2, dat$y); points(dat$x2, dat$y)
+# aov_res <- aov(y ~ x1 + x2, dat)
 # TukeyHSD.alphabet(aov_res, 'x1', alpha = 0.05)
 # TukeyHSD.alphabet(aov_res, 'x1', alpha = 0.01)
 # TukeyHSD.alphabet(aov_res, 'x2', alpha = 0.05)
