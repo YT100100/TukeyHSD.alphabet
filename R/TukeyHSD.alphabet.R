@@ -22,6 +22,20 @@ sort.levels.in.order.of.coef <- function(aov_res, factor_name) {
 
 }
 
+# sort level names in order of mean values of y
+sort.levels.in.order.of.mean <- function(aov_res, factor_name) {
+
+  dat0 <- aov_res$model
+
+  # calculate mean values
+  meanval <- tapply(dat0[, 1], dat0[[factor_name]], mean)
+
+  # output
+  level_name <- names(meanval)[order(meanval, decreasing = TRUE)]
+  level_name
+
+}
+
 # create initial empty matrix for the algorithm
 create.empty.matrix <- function(level_name) {
 
@@ -41,17 +55,25 @@ create.empty.matrix <- function(level_name) {
 
 # fill the cells of alphabet_mat
 # if the difference of the groups are significant
-reflect.significance <- function(alphabet_mat, level0, tukey_res, alpha) {
+reflect.significance <- function(alphabet_mat, level0, level_name, tukey_res, alpha) {
+
+  # create correspondence table of level names and rownames(tukey_res)
+  comp_names_df_all <- expand.grid(level1 = level_name,
+                                   level2 = level_name,
+                                   stringsAsFactors = FALSE)
+  comp_names_df_all$comp <- apply(comp_names_df_all, 1, paste, collapse = '-')
+  selector0 <- match(rownames(tukey_res), comp_names_df_all$comp)
+  comp_names_df <- comp_names_df_all[selector0, ]
 
   # extract result matrix of the target level
-  selector1 <- grepl(level0, rownames(tukey_res))
+  selector1 <- with(comp_names_df, comp[(level1 == level0) | (level2 == level0)])
   tukey_res_level0 <- tukey_res[selector1, ]
+  comp_names_df <- comp_names_df[match(selector1, comp_names_df$comp), ]
 
   # extract level names with significance
   selector2 <- tukey_res_level0[, 'p adj'] < alpha
-  signif_level <- rownames(tukey_res_level0)[selector2]
-  signif_level <- gsub(level0, '', signif_level)
-  signif_level <- gsub('-', '', signif_level)
+  signif_level <- with(comp_names_df, ifelse(level1 != level0, level1, level2))
+  signif_level <- signif_level[selector2]
 
   # fill matrix
   selector3 <- (alphabet_mat[signif_level, level0] == '-')
@@ -76,7 +98,6 @@ reflect.significance <- function(alphabet_mat, level0, tukey_res, alpha) {
 TukeyHSD_alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
 
   # factor_name <- 'x1'
-  # alpha <- 0.01
 
   # check class of the object
   is_class_good_1 <- identical(class(aov_res), c('aov', 'lm'))
@@ -96,7 +117,8 @@ TukeyHSD_alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
   # tukey_res
 
   # sort estimated coefficients
-  level_name <- sort.levels.in.order.of.coef(aov_res, factor_name)
+  # level_name <- sort.levels.in.order.of.coef(aov_res, factor_name)
+  level_name <- sort.levels.in.order.of.mean(aov_res, factor_name)
 
   # create empty matrix
   alphabet_mat <- create.empty.matrix(level_name)
@@ -106,7 +128,7 @@ TukeyHSD_alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
   for (i in 1:length(level_name)) {
     level0 <- level_name[i]
     alphabet_mat <- reflect.significance(
-      alphabet_mat, level0, tukey_res, alpha
+      alphabet_mat, level0, level_name, tukey_res, alpha
     )
     # print(alphabet_mat)
   }
@@ -159,8 +181,8 @@ TukeyHSD_alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
 
 
 
-### test code from here:
-
+# ### test code from here:
+#
 # # create simulation data
 # create.simulation.data <- function() {
 #
@@ -192,11 +214,56 @@ TukeyHSD_alphabet <- function(aov_res, factor_name, alpha = 0.05, ...) {
 #
 # }
 #
+# # full data
 # dat <- create.simulation.data()
-# plot(dat$x1, dat$y); points(dat$x1, dat$y)
-# plot(dat$x2, dat$y); points(dat$x2, dat$y)
 # aov_res <- aov(y ~ x1 + x2, dat)
-# TukeyHSD.alphabet(aov_res, 'x1', alpha = 0.05)
-# TukeyHSD.alphabet(aov_res, 'x1', alpha = 0.01)
-# TukeyHSD.alphabet(aov_res, 'x2', alpha = 0.05)
+#
+# ## x1
+# plot(dat$x1, dat$y); points(dat$x1, dat$y)
+# TukeyHSD_alphabet(aov_res, 'x1', alpha = 0.05)
+# TukeyHSD_alphabet(aov_res, 'x1', alpha = 0.01)
+#
+# ## x2
+# plot(dat$x2, dat$y); points(dat$x2, dat$y)
+# TukeyHSD_alphabet(aov_res, 'x2', alpha = 0.05)
+#
+#
+# # data with NA for one level
+# dat1 <- dat
+# dat1$y[dat1$x1 == 'PA'] <- NA
+# aov_res <- aov(y ~ x1 + x2, dat1)
+#
+# ## x1
+# plot(dat1$x1, dat1$y); points(dat1$x1, dat1$y)
+# TukeyHSD_alphabet(aov_res, 'x1', alpha = 0.05)
+# TukeyHSD_alphabet(aov_res, 'x1', alpha = 0.01)
+#
+#
+# # data with NA for specific condition
+# dat1 <- dat
+# dat1$y[(dat1$x1 == 'PA') & (dat1$x2 == 'QB')] <- NA
+# aov_res <- aov(y ~ x1 + x2, dat1)
+#
+# ## x1
+# plot(dat1$x1, dat1$y); points(dat1$x1, dat1$y)
+# TukeyHSD_alphabet(aov_res, 'x1', alpha = 0.05)
+#
+# ## x2
+# plot(dat$x2, dat$y); points(dat$x2, dat$y)
+# TukeyHSD_alphabet(aov_res, 'x2', alpha = 0.05)
+#
+#
+# # data with NA for specific condition (2)
+# dat1 <- dat
+# dat1$y[(dat1$x1 == 'PA') & (dat1$x2 == 'QB')] <- NA
+# dat1$y[(dat1$x1 == 'PB') & (dat1$x2 != 'QB')] <- NA
+# aov_res <- aov(y ~ x1 + x2, dat1)
+#
+# ## x1
+# plot(dat1$x1, dat1$y); points(dat1$x1, dat1$y)
+# TukeyHSD_alphabet(aov_res, 'x1', alpha = 0.05)
+#
+# ## x2
+# plot(dat$x2, dat$y); points(dat$x2, dat$y)
+# TukeyHSD_alphabet(aov_res, 'x2', alpha = 0.05)
 
